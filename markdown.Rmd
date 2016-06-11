@@ -1,0 +1,210 @@
+---
+title: "markdown"
+author: "Vincent Blain"
+date: "June 10, 2016"
+output: html_document
+---
+
+## possible packages needed
+
+```{r demo, eval=FALSE}
+install.packages("R.utils")
+library(R.utils)
+install.packages("data.table")
+library(data.table)
+install.packages("dplyr")
+library(dplyr)
+install.packages("quantmod")
+library(quantmod)
+install.packages("stringr")
+library(stringr)
+install.packages("qdap")
+library(qdap)
+install.packages("plyr")
+library(plyr)
+library(knitr)
+```
+
+## 1. Merges the training and the test sets to create one data set.
+
+Download File
+
+```{r, eval=TRUE}
+url <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+f <- file.path(getwd(), "getdata_projectfiles_UCI_HAR_Dataset.zip")
+download.file(url, f)
+```
+
+unzip file install R.utils package to get to unzip command and load the library before using
+
+```{r, eval=TRUE}
+unzip(f, overwrite = TRUE)
+fPath <- file.path(getwd(), "UCI HAR Dataset")
+files <- list.files(fPath, recursive = TRUE)
+```
+output list of files
+```{r, echo=TRUE}
+files
+```
+
+ignore "inertial signals"
+```{r, eval=TRUE}
+filesFinal <- files[ !grepl("Inertial Signals",files) ]
+```
+
+output list of files without "inertial signals"
+```{r, echo=TRUE}
+filesFinal
+```
+
+load data
+```{r, eval=TRUE}
+d_Test_Subject   <- read.table(file.path(fPath, "test" , "subject_test.txt"), header = FALSE)
+d_Test_Activity  <- read.table(file.path(fPath, "test" , "Y_test.txt" ), header = FALSE)
+d_Test_Features  <- read.table(file.path(fPath, "test" , "X_test.txt" ), header = FALSE)
+```
+output "d_Test_Subject"
+```{r, echo=TRUE}
+str(d_Test_Subject)
+```
+output "d_Test_Activity"
+```{r, echo=TRUE}
+str(d_Test_Activity)
+```
+output "d_Test_Features"
+```{r, echo=TRUE}
+str(d_Test_Features)
+```
+
+```{r, eval=TRUE}
+d_Train_Subject  <- read.table(file.path(fPath, "train", "subject_train.txt"), header = FALSE)
+d_Train_Activity <- read.table(file.path(fPath, "train", "Y_train.txt"), header = FALSE)
+d_Train_Features <- read.table(file.path(fPath, "train", "X_train.txt"), header = FALSE)
+```
+output "d_Train_Subject"
+```{r, echo=TRUE}
+str(d_Train_Subject)
+```
+output "d_Train_Activity"
+```{r, echo=TRUE}
+str(d_Train_Activity)
+```
+output "d_Train_Features"
+```{r, echo=TRUE}
+str(d_Train_Features)
+```
+
+merge datasets
+```{r, eval=TRUE}
+dfSubject  <- rbind(d_Train_Subject, d_Test_Subject)
+dfActivity <- rbind(d_Train_Activity, d_Test_Activity)
+dfFeatures <- rbind(d_Train_Features, d_Test_Features)
+```
+
+set names to vars
+```{r, eval=TRUE}
+names(dfSubject)  <-c("subject")
+names(dfActivity) <- c("activity")
+```
+
+load features names remove bad characters
+```{r, eval=TRUE}
+FeaturesNames     <- read.table(file.path(fPath, "features.txt"),head=FALSE)
+FeaturesNames$V2 <- gsub("(", "", fixed = TRUE, FeaturesNames$V2)
+FeaturesNames$V2 <- gsub(")", "", fixed = TRUE, FeaturesNames$V2)
+FeaturesNames$V2 <- gsub("-", "", fixed = TRUE, FeaturesNames$V2)
+FeaturesNames$V2 <- gsub(",", "", fixed = TRUE, FeaturesNames$V2)
+FeaturesNames$V2 <- gsub(" ", "", fixed = TRUE, FeaturesNames$V2)
+```
+
+output "FeaturesNames$V2"
+```{r, echo=TRUE}
+FeaturesNames$V2
+```
+
+ make columns lower case
+```{r, eval=TRUE}
+names(dfFeatures) <- tolower(FeaturesNames$V2)
+```
+output "FeaturesNames$V2"
+```{r, echo=TRUE}
+str(dfFeatures)
+```
+
+merge datasets
+```{r, eval=TRUE}
+dfCombine <- cbind(dfSubject, dfActivity)
+dfFinal   <- cbind(dfCombine, dfFeatures)
+```
+
+output "dfFinal" with updates
+```{r, echo=TRUE}
+str(dfFinal)
+```
+
+## 2. Extracts only the measurements on the mean and standard deviation for each measurement.
+
+get only the columns that match mean or std, make sure to set to lower case
+```{r, eval=TRUE}
+SubFeats <- tolower(FeaturesNames$V2[grep("mean|std", FeaturesNames$V2)])
+```
+add the subject and activity columns also
+```{r, eval=TRUE}
+setColNames <- c(as.character(SubFeats), "subject", "activity" )
+```
+get the subset of data based on selected columns
+```{r, eval=TRUE}
+almostTidyData <- subset(dfFinal, select=setColNames)
+```
+
+output "almostTidyData" should contain means, std, subject, activity
+```{r, echo=TRUE}
+str(almostTidyData)
+```
+
+## 3. Uses descriptive activity names to name the activities in the data set
+```{r, eval=TRUE}
+ativities <- read.table(file.path(fPath, "activity_labels.txt"),header = FALSE)
+```
+
+output "ativities"
+```{r, echo=TRUE}
+ativities
+```
+
+replace the activities integer values with their corresponding string values
+```{r, eval=TRUE}
+almostTidyData$activity<-factor(almostTidyData$activity);
+almostTidyData$activity<- factor(almostTidyData$activity,labels=as.character(ativities$V2))
+```
+
+output "almostTidyData"
+```{r, echo=TRUE}
+head(almostTidyData$activity,10)
+```
+
+## 4. Appropriately labels the data set with descriptive variable names.
+```{r, eval=TRUE}
+names(almostTidyData)<-gsub("^t", "time", names(almostTidyData))
+names(almostTidyData)<-gsub("^f", "frequency", names(almostTidyData))
+names(almostTidyData)<-gsub("acc", "accelerometer", names(almostTidyData))
+names(almostTidyData)<-gsub("gyro", "gyroscope", names(almostTidyData))
+names(almostTidyData)<-gsub("mag", "magnitude", names(almostTidyData))
+names(almostTidyData)<-gsub("bodybody", "body", names(almostTidyData))
+```
+
+output "almostTidyData" with tidy column names
+```{r, echo=TRUE}
+names(almostTidyData)
+```
+
+## 5. From the data set in step 4, creates a second, independent tidy data set with the average of each variable for each activity and each subject.
+```{r, eval=TRUE}
+tidyDf<-aggregate(. ~subject + activity, almostTidyData, mean)
+tidyDf<-tidyDf[order(tidyDf$subject,tidyDf$activity),]
+write.table(tidyDf, file = "tidydata.txt",row.name=FALSE)
+```
+output "almostTidyData" with tidy column names (first 6 columns only)
+```{r, echo=TRUE}
+head(tidyDf[1:6], 10)
+```
