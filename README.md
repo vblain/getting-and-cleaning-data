@@ -1,4 +1,4 @@
-# Markdown of script available at 
+# Codebook of script available at 
 http://htmlpreview.github.io/?https://github.com/vbs1/getting-and-cleaning-data/blob/master/markdown.html
 
 # getting-and-cleaning-data
