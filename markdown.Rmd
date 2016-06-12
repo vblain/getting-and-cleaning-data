@@ -1,27 +1,29 @@
 ---
-title: "markdown"
+title: "Code Book"
 author: "Vincent Blain"
 date: "June 10, 2016"
 output: html_document
 ---
 
-## possible packages needed
-
-```{r demo, eval=FALSE}
+possible packages needed
+```{r, eval=FALSE}
 install.packages("R.utils")
-library(R.utils)
 install.packages("data.table")
-library(data.table)
 install.packages("dplyr")
-library(dplyr)
 install.packages("quantmod")
-library(quantmod)
 install.packages("stringr")
-library(stringr)
 install.packages("qdap")
-library(qdap)
 install.packages("plyr")
+```
+load libraries
+```{r, eval=TRUE}
+library(R.utils)
+library(data.table)
+library(quantmod)
+library(stringr)
+library(qdap)
 library(plyr)
+library(dplyr)
 library(knitr)
 ```
 
@@ -133,8 +135,7 @@ str(dfFeatures)
 
 merge datasets
 ```{r, eval=TRUE}
-dfCombine <- cbind(dfSubject, dfActivity)
-dfFinal   <- cbind(dfCombine, dfFeatures)
+dfFinal   <- cbind(dfSubject, dfActivity, dfFeatures)
 ```
 
 output "dfFinal" with updates
@@ -199,12 +200,33 @@ names(almostTidyData)
 ```
 
 ## 5. From the data set in step 4, creates a second, independent tidy data set with the average of each variable for each activity and each subject.
+
+set columns to group by
 ```{r, eval=TRUE}
-tidyDf<-aggregate(. ~subject + activity, almostTidyData, mean)
-tidyDf<-tidyDf[order(tidyDf$subject,tidyDf$activity),]
+groupColumns = c("subject","activity")
+```
+
+get columns names from data frame that we will want to get average (mean) on
+```{r, eval=TRUE}
+dataColumns = colnames(almostTidyData[,1:79])
+```
+
+output columns to average
+```{r, echo=TRUE}
+dataColumns
+```
+
+using ddply get average of columns by group name
+```{r, eval=TRUE}
+tidyDf = ddply(almostTidyData, groupColumns, function(x) colMeans(x[dataColumns]))
+```
+
+output "almostTidyData" with tidy column names (first 4 columns only)
+```{r, echo=TRUE}
+head(tidyDf[1:4], 6)
+```
+write to text file
+```{r, eval=TRUE}
 write.table(tidyDf, file = "tidydata.txt",row.name=FALSE)
 ```
-output "almostTidyData" with tidy column names (first 6 columns only)
-```{r, echo=TRUE}
-head(tidyDf[1:6], 10)
-```
+

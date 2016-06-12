@@ -61,8 +61,7 @@ FeaturesNames$V2 <- gsub(" ", "", fixed = TRUE, FeaturesNames$V2)
 names(dfFeatures) <- tolower(FeaturesNames$V2)
 
 # merge datasets
-dfCombine <- cbind(dfSubject, dfActivity)
-dfFinal   <- cbind(dfCombine, dfFeatures)
+dfFinal   <- cbind(dfSubject, dfActivity, dfFeatures)
 
 # 2. Extracts only the measurements on the mean and standard deviation for each measurement.
 
@@ -79,8 +78,8 @@ almostTidyData <- subset(dfFinal, select=setColNames)
 ativities <- read.table(file.path(fPath, "activity_labels.txt"),header = FALSE)
 
 # replace the activities integer values with their corresponding string values
-almostTidyData$activity<-factor(almostTidyData$activity);
-almostTidyData$activity<- factor(almostTidyData$activity,labels=as.character(ativities$V2))
+almostTidyData$activity <- factor(almostTidyData$activity);
+almostTidyData$activity <- factor(almostTidyData$activity,labels=as.character(ativities$V2))
 
 ## 4. Appropriately labels the data set with descriptive variable names.
 names(almostTidyData)<-gsub("^t", "time", names(almostTidyData))
@@ -90,12 +89,16 @@ names(almostTidyData)<-gsub("gyro", "gyroscope", names(almostTidyData))
 names(almostTidyData)<-gsub("mag", "magnitude", names(almostTidyData))
 names(almostTidyData)<-gsub("bodybody", "body", names(almostTidyData))
 
-# 5. From the data set in step 4, creates a second, independent tidy data set with the average of each variable for each activity and each subject.
+str(almostTidyData)
 
-tidyDf<-aggregate(. ~subject + activity, almostTidyData, mean)
-tidyDf<-tidyDf[order(tidyDf$subject,tidyDf$activity),]
+# 5. From the data set in step 4, creates a second, independent tidy data set with the average of each variable for each activity and each subject.
+library(plyr)
+groupColumns = c("subject","activity")
+dataColumns = colnames(almostTidyData[,1:79])
+dataColumns
+tidyDf = ddply(almostTidyData, groupColumns, function(x) colMeans(x[dataColumns]))
+head(tidyDf)
+
 write.table(tidyDf, file = "tidydata.txt",row.name=FALSE)
 
-# 6. Produce code book
-# library(knitr)
-knit2html("run_analysis.R");
+
